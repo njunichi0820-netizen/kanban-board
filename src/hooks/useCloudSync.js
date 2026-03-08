@@ -10,6 +10,7 @@ export function useCloudSync(tasks, setTasks) {
   const [error, setError] = useState(null);
   const debounceTimer = useRef(null);
   const skipNextAutoSync = useRef(false);
+  const initialFetchDone = useRef(false);
 
   const isConfigured = !!(gistId && token);
 
@@ -18,6 +19,39 @@ export function useCloudSync(tasks, setTasks) {
     if (gistId) localStorage.setItem('kanban-gist-id', gistId);
     if (token) localStorage.setItem('kanban-gh-token', token);
   }, [gistId, token]);
+
+  // Download tasks from Gist
+  const downloadTasks = useCallback(async (gId, tk) => {
+    const useGistId = gId || gistId;
+    const useToken = tk || token;
+    if (!useGistId || !useToken) return false;
+    setSyncing(true);
+    setError(null);
+    try {
+      const res = await fetch(`${GITHUB_API}/gists/${useGistId}`, {
+        headers: { 'Authorization': `Bearer ${useToken}` },
+      });
+      if (res.status === 401) throw new Error('トークンが無効です');
+      if (res.status === 404) throw new Error('Gist IDが見つかりません');
+      if (!res.ok) throw new Error(`取得失敗: ${res.status}`);
+      const gist = await res.json();
+      const file = gist.files?.['kanban-data.json'];
+      if (!file) throw new Error('kanban-data.json が見つかりません');
+      const data = JSON.parse(file.content);
+      if (data?.tasks && Array.isArray(data.tasks)) {
+        skipNextAutoSync.current = true;
+        setTasks(data.tasks);
+        setLastSynced(new Date());
+        return true;
+      }
+      return false;
+    } catch (e) {
+      setError(e.message);
+      return false;
+    } finally {
+      setSyncing(false);
+    }
+  }, [gistId, token, setTasks]);
 
   // Upload tasks to Gist
   const uploadTasks = useCallback(async (data) => {
@@ -50,35 +84,17 @@ export function useCloudSync(tasks, setTasks) {
     }
   }, [gistId, token, isConfigured]);
 
-  // Download tasks from Gist
-  const downloadTasks = useCallback(async () => {
-    if (!isConfigured) return;
-    setSyncing(true);
-    setError(null);
-    try {
-      const res = await fetch(`${GITHUB_API}/gists/${gistId}`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error(`取得失敗: ${res.status}`);
-      const gist = await res.json();
-      const file = gist.files?.['kanban-data.json'];
-      if (!file) throw new Error('kanban-data.json が見つかりません');
-      const data = JSON.parse(file.content);
-      if (data?.tasks && Array.isArray(data.tasks)) {
-        skipNextAutoSync.current = true;
-        setTasks(data.tasks);
-        setLastSynced(new Date());
-      }
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setSyncing(false);
+  // AUTO-FETCH on app load when sync is configured
+  useEffect(() => {
+    if (isConfigured && !initialFetchDone.current) {
+      initialFetchDone.current = true;
+      downloadTasks();
     }
-  }, [gistId, token, isConfigured, setTasks]);
+  }, [isConfigured, downloadTasks]);
 
   // Auto-upload when tasks change (debounced)
   useEffect(() => {
-    if (!isConfigured || tasks.length === 0) return;
+    if (!isConfigured) return;
     if (skipNextAutoSync.current) {
       skipNextAutoSync.current = false;
       return;
@@ -116,6 +132,7 @@ export function useCloudSync(tasks, setTasks) {
       const gist = await res.json();
       setToken(ghToken);
       setGistId(gist.id);
+      initialFetchDone.current = true;
       setLastSynced(new Date());
       return gist.id;
     } catch (e) {
@@ -126,11 +143,14 @@ export function useCloudSync(tasks, setTasks) {
     }
   }, [tasks]);
 
-  // Setup with existing Gist
-  const setupSync = useCallback((ghToken, existingGistId) => {
+  // Setup with existing Gist + immediately download
+  const setupSync = useCallback(async (ghToken, existingGistId) => {
     setToken(ghToken);
     setGistId(existingGistId);
-  }, []);
+    initialFetchDone.current = true;
+    // Immediately download from the gist
+    await downloadTasks(existingGistId, ghToken);
+  }, [downloadTasks]);
 
   // Export tasks as JSON string
   const exportData = useCallback(() => {
@@ -160,7 +180,7 @@ export function useCloudSync(tasks, setTasks) {
     error,
     createGist,
     setupSync,
-    syncNow: downloadTasks,
+    syncNow: () => downloadTasks(),
     pushNow: () => uploadTasks(tasks),
     exportData,
     importData,
@@ -171,6 +191,7 @@ export function useCloudSync(tasks, setTasks) {
       localStorage.removeItem('kanban-gh-token');
       setLastSynced(null);
       setError(null);
+      initialFetchDone.current = false;
     },
   };
 }

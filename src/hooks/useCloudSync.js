@@ -9,7 +9,8 @@ export function useCloudSync(tasks, setTasks) {
   const [lastSynced, setLastSynced] = useState(null);
   const [error, setError] = useState(null);
   const debounceTimer = useRef(null);
-  const skipNextAutoSync = useRef(false);
+  // Use a timestamp to suppress auto-upload after download
+  const suppressUntil = useRef(0);
   const initialFetchDone = useRef(false);
 
   const isConfigured = !!(gistId && token);
@@ -39,7 +40,8 @@ export function useCloudSync(tasks, setTasks) {
       if (!file) throw new Error('kanban-data.json が見つかりません');
       const data = JSON.parse(file.content);
       if (data?.tasks && Array.isArray(data.tasks)) {
-        skipNextAutoSync.current = true;
+        // Suppress auto-upload for 5 seconds after download
+        suppressUntil.current = Date.now() + 5000;
         setTasks(data.tasks);
         setLastSynced(new Date());
         return true;
@@ -93,14 +95,15 @@ export function useCloudSync(tasks, setTasks) {
   }, [isConfigured, downloadTasks]);
 
   // Auto-upload when tasks change (debounced)
+  // BUT skip if we just downloaded (suppress window)
   useEffect(() => {
     if (!isConfigured) return;
-    if (skipNextAutoSync.current) {
-      skipNextAutoSync.current = false;
-      return;
-    }
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => {
+      // Check if we're still in the suppression window
+      if (Date.now() < suppressUntil.current) {
+        return;
+      }
       uploadTasks(tasks);
     }, 3000);
     return () => clearTimeout(debounceTimer.current);
@@ -130,6 +133,7 @@ export function useCloudSync(tasks, setTasks) {
       if (res.status === 401) throw new Error('トークンが無効です。gistスコープを確認してください');
       if (!res.ok) throw new Error(`作成失敗: ${res.status}`);
       const gist = await res.json();
+      suppressUntil.current = Date.now() + 5000;
       setToken(ghToken);
       setGistId(gist.id);
       initialFetchDone.current = true;
@@ -148,7 +152,6 @@ export function useCloudSync(tasks, setTasks) {
     setToken(ghToken);
     setGistId(existingGistId);
     initialFetchDone.current = true;
-    // Immediately download from the gist
     await downloadTasks(existingGistId, ghToken);
   }, [downloadTasks]);
 
@@ -162,6 +165,7 @@ export function useCloudSync(tasks, setTasks) {
     try {
       const data = JSON.parse(jsonStr);
       if (data?.tasks && Array.isArray(data.tasks)) {
+        suppressUntil.current = Date.now() + 5000;
         setTasks(data.tasks);
         return true;
       }

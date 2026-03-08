@@ -346,46 +346,47 @@ function App() {
     }
   };
 
-  // Mobile swipe — switches views (board/list/stats) at top level
-  const handleTouchStart = (e) => {
-    if (modalOpen || dragging.current) return;
-    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    touchDelta.current = 0;
-    swiping.current = false;
+  // Mobile swipe — switches views (board/list/stats) instantly
+  const viewSwipeStart = useRef(null);
+  const viewSwipeDelta = useRef(0);
+  const viewSwiping = useRef(false);
+
+  const handleViewTouchStart = (e) => {
+    if (modalOpen) return;
+    viewSwipeStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    viewSwipeDelta.current = 0;
+    viewSwiping.current = false;
   };
 
-  const handleTouchMove = (e) => {
-    if (!touchStart.current || modalOpen || dragging.current) return;
-    const dx = e.touches[0].clientX - touchStart.current.x;
-    const dy = e.touches[0].clientY - touchStart.current.y;
-    if (!swiping.current) {
+  const handleViewTouchMove = (e) => {
+    if (!viewSwipeStart.current || modalOpen) return;
+    const dx = e.touches[0].clientX - viewSwipeStart.current.x;
+    const dy = e.touches[0].clientY - viewSwipeStart.current.y;
+    if (!viewSwiping.current) {
       if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
-        swiping.current = true;
+        viewSwiping.current = true;
       } else if (Math.abs(dy) > 10) {
-        touchStart.current = null;
+        viewSwipeStart.current = null;
         return;
       }
     }
-    if (swiping.current) {
-      e.preventDefault();
-      touchDelta.current = dx;
-      setSwipeOffset(dx * 0.3);
+    if (viewSwiping.current) {
+      viewSwipeDelta.current = dx;
     }
   };
 
-  const handleTouchEnd = () => {
-    if (swiping.current && Math.abs(touchDelta.current) > 60) {
+  const handleViewTouchEnd = () => {
+    if (viewSwiping.current && Math.abs(viewSwipeDelta.current) > 50) {
       const currentIdx = VIEW_MODES.indexOf(viewMode);
-      if (touchDelta.current < 0 && currentIdx < VIEW_MODES.length - 1) {
+      if (viewSwipeDelta.current < 0 && currentIdx < VIEW_MODES.length - 1) {
         setViewMode(VIEW_MODES[currentIdx + 1]);
-      } else if (touchDelta.current > 0 && currentIdx > 0) {
+      } else if (viewSwipeDelta.current > 0 && currentIdx > 0) {
         setViewMode(VIEW_MODES[currentIdx - 1]);
       }
     }
-    touchStart.current = null;
-    touchDelta.current = 0;
-    swiping.current = false;
-    setSwipeOffset(0);
+    viewSwipeStart.current = null;
+    viewSwipeDelta.current = 0;
+    viewSwiping.current = false;
   };
 
   // Board-only column swipe (within board view)
@@ -576,9 +577,9 @@ function App() {
     return (
       <div
         className="flex flex-col h-dvh bg-slate-50 select-none"
-        onTouchStart={viewMode !== 'board' ? handleTouchStart : undefined}
-        onTouchMove={viewMode !== 'board' ? handleTouchMove : undefined}
-        onTouchEnd={viewMode !== 'board' ? handleTouchEnd : undefined}
+        onTouchStart={viewMode !== 'board' ? handleViewTouchStart : undefined}
+        onTouchMove={viewMode !== 'board' ? handleViewTouchMove : undefined}
+        onTouchEnd={viewMode !== 'board' ? handleViewTouchEnd : undefined}
       >
         {/* Header */}
         <header className="px-4 pt-3 pb-2 bg-white shadow-sm shrink-0">
@@ -621,19 +622,11 @@ function App() {
         </header>
 
         {viewMode === 'stats' ? (
-          <div
-            className="flex-1 min-h-0"
-            style={{ transform: `translateX(${swipeOffset}px)`, transition: swiping.current ? 'none' : 'transform 0.2s' }}
-          >
-            <ErrorBoundary>
-              <StatsView tasks={tasks} tags={tags} points={points} getLevel={getLevel} getDailyData={getDailyData} getWeeklyData={getWeeklyData} />
-            </ErrorBoundary>
-          </div>
+          <ErrorBoundary>
+            <StatsView tasks={tasks} tags={tags} points={points} getLevel={getLevel} getDailyData={getDailyData} getWeeklyData={getWeeklyData} />
+          </ErrorBoundary>
         ) : viewMode === 'list' ? (
-          <div
-            className="flex-1 min-h-0"
-            style={{ transform: `translateX(${swipeOffset}px)`, transition: swiping.current ? 'none' : 'transform 0.2s' }}
-          >
+          <div className="flex-1 min-h-0">
             <ListView
               tasks={tasks}
               onEditTask={handleEditTask}

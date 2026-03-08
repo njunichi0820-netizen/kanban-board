@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo, Component } from 'react';
 import {
   DndContext,
   pointerWithin,
@@ -24,6 +24,35 @@ import { useLocalStorage } from './hooks/useLocalStorage';
 import { useCloudSync } from './hooks/useCloudSync';
 import { useKarma } from './hooks/useKarma';
 import { COLUMNS, DEFAULT_TAGS } from './constants';
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-6 max-w-md">
+            <h3 className="text-red-700 font-bold mb-2">エラーが発生しました</h3>
+            <p className="text-red-600 text-sm font-mono break-all">{this.state.error.message}</p>
+            <button
+              onClick={() => this.setState({ error: null })}
+              className="mt-3 px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"
+            >
+              再試行
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function App() {
   const [tasks, setTasks] = useLocalStorage('kanban-tasks', []);
@@ -530,7 +559,9 @@ function App() {
         </header>
 
         {viewMode === 'stats' ? (
-          <StatsView tasks={tasks} tags={tags} points={points} getLevel={getLevel} getDailyData={getDailyData} getWeeklyData={getWeeklyData} />
+          <ErrorBoundary>
+            <StatsView tasks={tasks} tags={tags} points={points} getLevel={getLevel} getDailyData={getDailyData} getWeeklyData={getWeeklyData} />
+          </ErrorBoundary>
         ) : viewMode === 'list' ? (
           <ListView
             tasks={tasks}

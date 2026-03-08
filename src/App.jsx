@@ -575,14 +575,14 @@ function App() {
   if (isMobile) {
     const col = COLUMNS[activeColumnIndex];
     return (
-      <div
-        className="flex flex-col h-dvh bg-slate-50 select-none"
-        onTouchStart={viewMode !== 'board' ? handleViewTouchStart : undefined}
-        onTouchMove={viewMode !== 'board' ? handleViewTouchMove : undefined}
-        onTouchEnd={viewMode !== 'board' ? handleViewTouchEnd : undefined}
-      >
-        {/* Header */}
-        <header className="px-4 pt-3 pb-2 bg-white shadow-sm shrink-0">
+      <div className="flex flex-col h-dvh bg-slate-50 select-none">
+        {/* Header — swipe here to switch views from any mode */}
+        <header
+          className="px-4 pt-3 pb-2 bg-white shadow-sm shrink-0"
+          onTouchStart={handleViewTouchStart}
+          onTouchMove={handleViewTouchMove}
+          onTouchEnd={handleViewTouchEnd}
+        >
           <div className="flex items-center justify-between">
             <Logo size="sm" />
             <div className="flex items-center gap-1">
@@ -622,11 +622,23 @@ function App() {
         </header>
 
         {viewMode === 'stats' ? (
-          <ErrorBoundary>
-            <StatsView tasks={tasks} tags={tags} points={points} getLevel={getLevel} getDailyData={getDailyData} getWeeklyData={getWeeklyData} />
-          </ErrorBoundary>
+          <div
+            className="flex-1 min-h-0"
+            onTouchStart={handleViewTouchStart}
+            onTouchMove={handleViewTouchMove}
+            onTouchEnd={handleViewTouchEnd}
+          >
+            <ErrorBoundary>
+              <StatsView tasks={tasks} tags={tags} points={points} getLevel={getLevel} getDailyData={getDailyData} getWeeklyData={getWeeklyData} />
+            </ErrorBoundary>
+          </div>
         ) : viewMode === 'list' ? (
-          <div className="flex-1 min-h-0">
+          <div
+            className="flex-1 min-h-0"
+            onTouchStart={handleViewTouchStart}
+            onTouchMove={handleViewTouchMove}
+            onTouchEnd={handleViewTouchEnd}
+          >
             <ListView
               tasks={tasks}
               onEditTask={handleEditTask}

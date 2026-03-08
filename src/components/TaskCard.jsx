@@ -62,8 +62,10 @@ export default function TaskCard({ task, columnId, onEdit, onDelete, onMove, onU
     <div
       ref={setNodeRef}
       style={style}
+      {...attributes}
+      {...listeners}
       className={`
-        relative rounded-2xl transition-all duration-200 w-full overflow-hidden
+        relative rounded-2xl transition-all duration-200 w-full overflow-hidden md:cursor-grab md:active:cursor-grabbing
         ${task.priority ? 'border-l-4 border-orange-400 bg-orange-50/50' : 'bg-white'}
         ${isDragging ? 'opacity-50 shadow-xl z-50' : 'shadow-sm hover:shadow-md'}
         ${isDone ? 'opacity-50' : ''}
@@ -72,11 +74,7 @@ export default function TaskCard({ task, columnId, onEdit, onDelete, onMove, onU
       onClick={handleCardClick}
     >
       <div className="flex items-start gap-2 p-3">
-        <div
-          {...listeners}
-          {...attributes}
-          className="mt-1 text-gray-300 shrink-0 p-1 touch-none cursor-grab active:cursor-grabbing hidden md:block"
-        >
+        <div className="mt-1 text-gray-300 shrink-0 p-1 hidden md:block">
           <GripVertical size={14} />
         </div>
 

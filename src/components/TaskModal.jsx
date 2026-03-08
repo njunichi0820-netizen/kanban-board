@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { X, Flame } from 'lucide-react';
 import { COLUMNS } from '../constants';
 
 export default function TaskModal({ isOpen, task, defaultColumn, tags = [], onSave, onClose }) {
@@ -7,6 +7,7 @@ export default function TaskModal({ isOpen, task, defaultColumn, tags = [], onSa
   const [description, setDescription] = useState('');
   const [column, setColumn] = useState('idea');
   const [selectedTags, setSelectedTags] = useState([]);
+  const [priority, setPriority] = useState(false);
   const titleRef = useRef(null);
 
   useEffect(() => {
@@ -16,11 +17,13 @@ export default function TaskModal({ isOpen, task, defaultColumn, tags = [], onSa
         setDescription(task.description || '');
         setColumn(task.column);
         setSelectedTags(task.tags || []);
+        setPriority(task.priority || false);
       } else {
         setTitle('');
         setDescription('');
         setColumn(defaultColumn || 'idea');
         setSelectedTags([]);
+        setPriority(false);
       }
       setTimeout(() => titleRef.current?.focus(), 100);
     }
@@ -42,6 +45,7 @@ export default function TaskModal({ isOpen, task, defaultColumn, tags = [], onSa
       title: title.trim(),
       description: description.trim(),
       tags: selectedTags,
+      priority,
       column,
       subtasks: task?.subtasks || [],
       createdAt: task?.createdAt || Date.now(),
@@ -112,6 +116,23 @@ export default function TaskModal({ isOpen, task, defaultColumn, tags = [], onSa
                 );
               })}
             </div>
+          </div>
+
+          {/* Priority */}
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5 uppercase tracking-wide">重要度</label>
+            <button
+              type="button"
+              onClick={() => setPriority(v => !v)}
+              className={`flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-xl transition-all ${
+                priority
+                  ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-200'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              <Flame size={14} />
+              {priority ? '重要' : '通常'}
+            </button>
           </div>
 
           {/* Column */}

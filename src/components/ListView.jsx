@@ -136,7 +136,7 @@ function ListRow({ task, colMap, tags, onEdit, onDelete, onMove, onDuplicate }) 
         onClick={() => setShowMove((v) => !v)}
       >
         <div className={`text-sm ${isDone ? 'line-through text-gray-400' : 'text-gray-800'}`}>
-          <span className="font-medium">{task.title}</span>
+          <span className="font-medium">{task.priority && <span className="mr-1">🔥</span>}{task.title}</span>
           {task.description && (
             <span className="text-xs text-gray-400 ml-2">{task.description}</span>
           )}
@@ -183,7 +183,7 @@ function ListRow({ task, colMap, tags, onEdit, onDelete, onMove, onDuplicate }) 
         <div className="flex items-center justify-between gap-2">
           <div className="flex-1 min-w-0">
             <p className={`text-sm font-medium truncate ${isDone ? 'line-through text-gray-400' : 'text-gray-800'}`}>
-              {task.title}
+              {task.priority && <span className="mr-1">🔥</span>}{task.title}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">

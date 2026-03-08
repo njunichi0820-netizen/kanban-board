@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Pencil, Trash2, ChevronDown, ChevronRight, Plus, Check, Clock, Copy, Archive } from 'lucide-react';
+import { GripVertical, Pencil, Trash2, ChevronDown, ChevronRight, Plus, Check, Clock, Copy, Archive, Flame } from 'lucide-react';
 import { COLUMNS } from '../constants';
 
 function formatDate(ts) {
@@ -54,12 +54,18 @@ export default function TaskCard({ task, columnId, onEdit, onDelete, onMove, onU
     onUpdateTask?.({ ...task, subtasks: subtasks.filter((_, i) => i !== idx) });
   };
 
+  const togglePriority = () => {
+    onUpdateTask?.({ ...task, priority: !task.priority });
+  };
+
   return (
     <div
       ref={setNodeRef}
       style={style}
+      {...attributes}
+      {...listeners}
       className={`
-        relative bg-white rounded-2xl transition-all duration-200 overflow-hidden
+        relative bg-white rounded-2xl transition-all duration-200 w-full overflow-hidden touch-none
         ${isDragging ? 'opacity-50 shadow-xl z-50' : 'shadow-sm hover:shadow-md'}
         ${isDone ? 'opacity-50' : ''}
         ${expanded ? 'shadow-lg ring-1 ring-black/5' : ''}
@@ -67,16 +73,13 @@ export default function TaskCard({ task, columnId, onEdit, onDelete, onMove, onU
       onClick={handleCardClick}
     >
       <div className="flex items-start gap-2 p-3">
-        <button
-          {...attributes}
-          {...listeners}
-          className="mt-1 touch-none text-gray-300 hover:text-gray-400 cursor-grab active:cursor-grabbing shrink-0"
-        >
+        <div className="mt-1 text-gray-300 shrink-0">
           <GripVertical size={14} />
-        </button>
+        </div>
 
         <div className="flex-1 min-w-0">
           <p className={`text-[13px] font-semibold break-words leading-snug ${isDone ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+            {task.priority && <span className="mr-1">🔥</span>}
             {task.title}
           </p>
 
@@ -109,12 +112,6 @@ export default function TaskCard({ task, columnId, onEdit, onDelete, onMove, onU
               </span>
             )}
           </div>
-
-          {task.description && (
-            <p className={`mt-1 text-xs break-words leading-relaxed ${isDone ? 'line-through text-gray-300' : 'text-gray-500'}`}>
-              {task.description}
-            </p>
-          )}
         </div>
 
         <div className="flex gap-0.5 shrink-0">
@@ -154,6 +151,26 @@ export default function TaskCard({ task, columnId, onEdit, onDelete, onMove, onU
       {/* Expanded section */}
       {expanded && (
         <div className="px-3 pb-3 space-y-2">
+          {/* Description (shown only when expanded) */}
+          {task.description && (
+            <p className={`text-xs leading-relaxed break-words ${isDone ? 'line-through text-gray-300' : 'text-gray-500'}`} style={{ overflowWrap: 'anywhere' }}>
+              {task.description}
+            </p>
+          )}
+
+          {/* Priority toggle */}
+          <button
+            onClick={(e) => { e.stopPropagation(); togglePriority(); }}
+            className={`flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${
+              task.priority
+                ? 'bg-orange-50 text-orange-600'
+                : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
+            }`}
+          >
+            <Flame size={12} />
+            {task.priority ? '重要' : '重要にする'}
+          </button>
+
           {/* Subtasks */}
           {subtasks.length > 0 && (
             <div>

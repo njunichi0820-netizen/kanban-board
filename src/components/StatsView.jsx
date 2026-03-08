@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
-import { COLUMNS } from '../constants';
-import { Flame, TrendingUp, Zap, CheckCircle2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { COLUMNS, POINT_RULES, LEVEL_TABLE } from '../constants';
+import { Flame, TrendingUp, Zap, CheckCircle2, HelpCircle } from 'lucide-react';
 
 export default function StatsView({ tasks = [], tags = [], points, getLevel, getDailyData, getWeeklyData }) {
+  const [showRules, setShowRules] = useState(false);
   const safePoints = points || { total: 0, streak: 0, daily: {} };
   const level = getLevel ? getLevel() : { current: { name: 'ビギナー' }, next: null, progress: 0 };
   const dailyData = getDailyData ? getDailyData(14) : [];
@@ -74,7 +75,42 @@ export default function StatsView({ tasks = [], tags = [], points, getLevel, get
               </div>
             </div>
           )}
+          {/* Help button */}
+          <button
+            onClick={() => setShowRules(v => !v)}
+            className="absolute top-3 right-3 p-1.5 bg-white/15 backdrop-blur-sm rounded-lg text-white/70 hover:text-white hover:bg-white/25 transition-colors z-10"
+            title="ポイントルール"
+          >
+            <HelpCircle size={16} />
+          </button>
         </div>
+
+        {/* Point rules */}
+        {showRules && (
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+            <h3 className="text-sm font-bold text-gray-800 mb-3">ポイントルール</h3>
+            <div className="space-y-2 mb-4">
+              {POINT_RULES.map((rule, i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">{rule.action}</span>
+                    <p className="text-[11px] text-gray-400">{rule.description}</p>
+                  </div>
+                  <span className="text-sm font-bold text-indigo-600 shrink-0 ml-3">{rule.points}</span>
+                </div>
+              ))}
+            </div>
+            <h4 className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">レベル一覧</h4>
+            <div className="grid grid-cols-3 gap-1.5">
+              {LEVEL_TABLE.map((lv, i) => (
+                <div key={i} className="text-center bg-gray-50 rounded-lg py-1.5 px-2">
+                  <p className="text-[11px] font-bold text-gray-700">{lv.name}</p>
+                  <p className="text-[10px] text-gray-400">{lv.min} pt~</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Metric cards */}
         <div className="grid grid-cols-3 gap-3">

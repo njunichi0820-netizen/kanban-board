@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Pencil, Trash2 } from 'lucide-react';
-import { PRIORITY_COLORS } from '../constants';
+import { PRIORITY_COLORS, COLUMNS } from '../constants';
 
-export default function TaskCard({ task, columnId, onEdit, onDelete }) {
+export default function TaskCard({ task, columnId, onEdit, onDelete, onMove }) {
   const isDone = columnId === 'done';
+  const [showMoveButtons, setShowMoveButtons] = useState(false);
   const {
     attributes,
     listeners,
@@ -19,6 +21,11 @@ export default function TaskCard({ task, columnId, onEdit, onDelete }) {
     transition,
   };
 
+  const handleCardClick = (e) => {
+    if (e.target.closest('button')) return;
+    setShowMoveButtons((v) => !v);
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -29,6 +36,7 @@ export default function TaskCard({ task, columnId, onEdit, onDelete }) {
         ${isDragging ? 'opacity-50 shadow-lg z-50' : ''}
         ${isDone ? 'opacity-60' : ''}
       `}
+      onClick={handleCardClick}
     >
       <div className="flex items-start gap-1 p-3">
         <button
@@ -68,6 +76,32 @@ export default function TaskCard({ task, columnId, onEdit, onDelete }) {
           </button>
         </div>
       </div>
+
+      {/* Move buttons */}
+      {showMoveButtons && onMove && (
+        <div className="flex items-center justify-between px-2 pb-2 gap-1">
+          {COLUMNS.map((col) => (
+            <button
+              key={col.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (col.id !== columnId) {
+                  onMove(task.id, col.id);
+                  setShowMoveButtons(false);
+                }
+              }}
+              disabled={col.id === columnId}
+              className={`flex-1 text-xs py-1.5 rounded-md font-medium transition-colors ${
+                col.id === columnId
+                  ? 'bg-gray-200 text-gray-400 cursor-default'
+                  : 'bg-gray-100 text-gray-600 hover:bg-blue-100 hover:text-blue-600 active:bg-blue-200'
+              }`}
+            >
+              {col.title}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

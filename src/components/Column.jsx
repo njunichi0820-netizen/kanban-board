@@ -3,7 +3,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Plus } from 'lucide-react';
 import TaskCard from './TaskCard';
 
-export default function Column({ column, tasks, onAddTask, onEditTask, onDeleteTask }) {
+export default function Column({ column, tasks, onAddTask, onEditTask, onDeleteTask, onMoveTask }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   return (
@@ -37,6 +37,7 @@ export default function Column({ column, tasks, onAddTask, onEditTask, onDeleteT
               columnId={column.id}
               onEdit={onEditTask}
               onDelete={onDeleteTask}
+              onMove={onMoveTask}
             />
           ))}
         </SortableContext>

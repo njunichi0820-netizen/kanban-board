@@ -1,144 +1,241 @@
-import { useState } from 'react';
-import { Cloud, CloudOff, RefreshCw, Copy, Check, Link, Unlink } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Cloud, CloudOff, RefreshCw, Copy, Check, Unlink, Download, Upload, Key } from 'lucide-react';
 
 export default function SyncPanel({ sync, onClose }) {
-  const { syncId, syncing, lastSynced, error, createSync, joinSync, syncNow, pushNow, clearSync } = sync;
-  const [joinInput, setJoinInput] = useState('');
-  const [copied, setCopied] = useState(false);
+  const {
+    gistId, isConfigured, syncing, lastSynced, error,
+    createGist, setupSync, syncNow, pushNow, exportData, importData, clearSync,
+  } = sync;
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(syncId);
+  const [tab, setTab] = useState(isConfigured ? 'sync' : 'setup');
+  const [tokenInput, setTokenInput] = useState('');
+  const [gistInput, setGistInput] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importMsg, setImportMsg] = useState('');
+  const fileRef = useRef(null);
+
+  const handleCreate = async () => {
+    if (!tokenInput.trim()) return;
+    const id = await createGist(tokenInput.trim());
+    if (id) {
+      setTab('sync');
+      setTokenInput('');
+    }
+  };
+
+  const handleJoin = () => {
+    if (!tokenInput.trim() || !gistInput.trim()) return;
+    setupSync(tokenInput.trim(), gistInput.trim());
+    setTab('sync');
+    setTokenInput('');
+    setGistInput('');
+    setTimeout(() => syncNow(), 300);
+  };
+
+  const handleCopyGistId = () => {
+    navigator.clipboard.writeText(gistId);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleCreate = () => {
-    createSync();
+  const handleExport = () => {
+    const data = exportData();
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kanban-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const handleJoin = (e) => {
-    e.preventDefault();
-    if (joinInput.trim()) {
-      joinSync(joinInput.trim());
-      setJoinInput('');
-    }
+  const handleImportFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const ok = importData(ev.target.result);
+      setImportMsg(ok ? 'インポート成功!' : 'データ形式が正しくありません');
+      setTimeout(() => setImportMsg(''), 3000);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImportText = () => {
+    if (!importText.trim()) return;
+    const ok = importData(importText.trim());
+    setImportMsg(ok ? 'インポート成功!' : 'データ形式が正しくありません');
+    if (ok) setImportText('');
+    setTimeout(() => setImportMsg(''), 3000);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
         <div className="flex items-center gap-2 px-5 py-4 border-b">
-          {syncId ? <Cloud size={20} className="text-blue-500" /> : <CloudOff size={20} className="text-gray-400" />}
-          <h3 className="font-semibold text-gray-800">デバイス同期</h3>
+          {isConfigured ? <Cloud size={20} className="text-indigo-500" /> : <CloudOff size={20} className="text-gray-400" />}
+          <h3 className="font-bold text-gray-800">デバイス同期</h3>
+        </div>
+
+        {/* Tab switcher */}
+        <div className="flex border-b">
+          {['setup', 'export'].map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t === 'setup' && isConfigured ? 'sync' : t)}
+              className={`flex-1 py-2.5 text-xs font-bold tracking-wide transition-colors ${
+                (tab === t || (t === 'setup' && tab === 'sync'))
+                  ? 'text-indigo-600 border-b-2 border-indigo-600'
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              {t === 'setup' ? (isConfigured ? 'GitHub同期' : 'セットアップ') : 'エクスポート'}
+            </button>
+          ))}
         </div>
 
         <div className="p-5 space-y-4">
-          {syncId ? (
+          {/* === Sync configured === */}
+          {tab === 'sync' && isConfigured && (
             <>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">同期ID</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Gist ID</label>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 px-3 py-2 bg-gray-100 rounded-lg text-sm font-mono text-gray-700 truncate">
-                    {syncId}
+                  <code className="flex-1 px-3 py-2 bg-gray-100 rounded-lg text-xs font-mono text-gray-600 truncate">
+                    {gistId}
                   </code>
-                  <button
-                    onClick={handleCopy}
-                    className="p-2 text-gray-500 hover:text-blue-500 bg-gray-100 rounded-lg"
-                    title="コピー"
-                  >
+                  <button onClick={handleCopyGistId} className="p-2 bg-gray-100 rounded-lg text-gray-500 hover:text-indigo-500">
                     {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
                   </button>
                 </div>
-                <p className="mt-1 text-[11px] text-gray-400">
-                  このIDを別のデバイスで入力すると同期できます
-                </p>
+                <p className="mt-1 text-[10px] text-gray-400">別デバイスでこのGist IDとトークンを入力</p>
               </div>
 
               {lastSynced && (
-                <p className="text-xs text-gray-400">
-                  最終同期: {lastSynced.toLocaleTimeString('ja-JP')}
-                </p>
+                <p className="text-xs text-gray-400">最終同期: {lastSynced.toLocaleTimeString('ja-JP')}</p>
               )}
-
-              {error && (
-                <p className="text-xs text-red-500">{error}</p>
-              )}
+              {error && <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
 
               <div className="flex gap-2">
-                <button
-                  onClick={syncNow}
-                  disabled={syncing}
-                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
-                >
-                  <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
-                  取得
+                <button onClick={syncNow} disabled={syncing}
+                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2.5 text-sm font-bold bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 disabled:opacity-50">
+                  <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} /> 取得
                 </button>
-                <button
-                  onClick={pushNow}
-                  disabled={syncing}
-                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50"
-                >
-                  <Cloud size={14} />
-                  送信
+                <button onClick={pushNow} disabled={syncing}
+                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2.5 text-sm font-bold bg-green-500 text-white rounded-xl hover:bg-green-600 disabled:opacity-50">
+                  <Cloud size={14} /> 送信
                 </button>
               </div>
 
-              <button
-                onClick={clearSync}
-                className="flex items-center justify-center gap-1 w-full px-3 py-2 text-sm text-red-500 bg-red-50 rounded-lg hover:bg-red-100"
-              >
-                <Unlink size={14} />
-                同期解除
+              <button onClick={() => { clearSync(); setTab('setup'); }}
+                className="flex items-center justify-center gap-1 w-full px-3 py-2 text-sm text-red-500 bg-red-50 rounded-xl hover:bg-red-100 font-bold">
+                <Unlink size={14} /> 同期解除
               </button>
             </>
-          ) : (
-            <>
-              <p className="text-sm text-gray-600">
-                同期IDを作成して、PCとスマホで同じデータを共有できます。
-              </p>
+          )}
 
-              <button
-                onClick={handleCreate}
-                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600"
-              >
-                <Link size={16} />
-                新しい同期IDを作成
+          {/* === Setup === */}
+          {tab === 'setup' && !isConfigured && (
+            <>
+              <div className="bg-indigo-50 rounded-xl p-3 text-xs text-indigo-700 leading-relaxed">
+                <p className="font-bold mb-1">GitHub Gistで同期</p>
+                <p>Personal Access Token(classic)が必要です。</p>
+                <p className="mt-1">GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token</p>
+                <p className="mt-1 font-semibold">スコープ: <code className="bg-indigo-100 px-1 rounded">gist</code> のみチェック</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">
+                  <Key size={12} className="inline mr-1" />GitHub Token
+                </label>
+                <input
+                  type="password"
+                  value={tokenInput}
+                  onChange={(e) => setTokenInput(e.target.value)}
+                  placeholder="ghp_xxxxxxxxxxxx"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                />
+              </div>
+
+              <button onClick={handleCreate} disabled={!tokenInput.trim() || syncing}
+                className="w-full px-4 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-30">
+                {syncing ? '作成中...' : '新しい同期を開始'}
               </button>
 
               <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />
-                </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="px-2 bg-white text-gray-400">または</span>
-                </div>
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
+                <div className="relative flex justify-center text-xs"><span className="px-2 bg-white text-gray-400">既存の同期に参加</span></div>
               </div>
 
-              <form onSubmit={handleJoin} className="flex gap-2">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Gist ID</label>
                 <input
                   type="text"
-                  value={joinInput}
-                  onChange={(e) => setJoinInput(e.target.value)}
-                  placeholder="同期IDを入力"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  value={gistInput}
+                  onChange={(e) => setGistInput(e.target.value)}
+                  placeholder="abc123def456..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-400"
                 />
-                <button
-                  type="submit"
-                  disabled={!joinInput.trim()}
-                  className="px-4 py-2 text-sm font-medium text-white bg-gray-700 rounded-lg hover:bg-gray-800 disabled:opacity-30"
-                >
-                  参加
-                </button>
-              </form>
+              </div>
+
+              <button onClick={handleJoin} disabled={!tokenInput.trim() || !gistInput.trim()}
+                className="w-full px-4 py-2.5 text-sm font-bold text-white bg-gray-700 rounded-xl hover:bg-gray-800 disabled:opacity-30">
+                参加して取得
+              </button>
+
+              {error && <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+            </>
+          )}
+
+          {/* === Export/Import === */}
+          {tab === 'export' && (
+            <>
+              <button onClick={handleExport}
+                className="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700">
+                <Download size={16} /> JSONファイルをダウンロード
+              </button>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
+                <div className="relative flex justify-center text-xs"><span className="px-2 bg-white text-gray-400">インポート</span></div>
+              </div>
+
+              <button onClick={() => fileRef.current?.click()}
+                className="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-bold text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200">
+                <Upload size={16} /> JSONファイルを選択
+              </button>
+              <input ref={fileRef} type="file" accept=".json" onChange={handleImportFile} className="hidden" />
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
+                <div className="relative flex justify-center text-xs"><span className="px-2 bg-white text-gray-400">またはテキスト貼り付け</span></div>
+              </div>
+
+              <textarea
+                value={importText}
+                onChange={(e) => setImportText(e.target.value)}
+                rows={3}
+                placeholder='{"tasks":[...]}'
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+              />
+              <button onClick={handleImportText} disabled={!importText.trim()}
+                className="w-full px-4 py-2 text-sm font-bold text-white bg-gray-700 rounded-xl hover:bg-gray-800 disabled:opacity-30">
+                テキストからインポート
+              </button>
+
+              {importMsg && (
+                <p className={`text-xs text-center font-bold ${importMsg.includes('成功') ? 'text-green-600' : 'text-red-500'}`}>
+                  {importMsg}
+                </p>
+              )}
             </>
           )}
         </div>
 
         <div className="px-5 pb-4">
-          <button
-            onClick={onClose}
-            className="w-full px-4 py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
-          >
+          <button onClick={onClose} className="w-full px-4 py-2.5 text-sm font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200">
             閉じる
           </button>
         </div>

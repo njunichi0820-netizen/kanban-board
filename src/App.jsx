@@ -197,13 +197,13 @@ function App() {
     <button
       onClick={() => setSyncPanelOpen(true)}
       className={`p-2 rounded-lg transition-colors ${
-        sync.syncId
+        sync.isConfigured
           ? 'text-indigo-500 hover:bg-indigo-50'
           : 'text-gray-400 hover:bg-gray-100'
       } ${sync.syncing ? 'animate-pulse' : ''}`}
       aria-label="同期設定"
     >
-      {sync.syncId ? <Cloud size={size} /> : <CloudOff size={size} />}
+      {sync.isConfigured ? <Cloud size={size} /> : <CloudOff size={size} />}
     </button>
   );
 

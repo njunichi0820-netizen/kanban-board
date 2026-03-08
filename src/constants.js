@@ -1,20 +1,17 @@
 export const COLUMNS = [
-  { id: 'idea', title: 'Idea', color: 'bg-purple-500', lightBg: 'bg-purple-100', lightText: 'text-purple-700', btnBg: 'bg-purple-500', btnHover: 'hover:bg-purple-600' },
-  { id: 'todo', title: 'ToDo', color: 'bg-blue-500', lightBg: 'bg-blue-100', lightText: 'text-blue-700', btnBg: 'bg-blue-500', btnHover: 'hover:bg-blue-600' },
-  { id: 'doing', title: 'Doing', color: 'bg-yellow-500', lightBg: 'bg-yellow-100', lightText: 'text-yellow-700', btnBg: 'bg-yellow-500', btnHover: 'hover:bg-yellow-600' },
-  { id: 'done', title: 'Done', color: 'bg-green-500', lightBg: 'bg-green-100', lightText: 'text-green-700', btnBg: 'bg-green-500', btnHover: 'hover:bg-green-600' },
+  { id: 'idea', title: 'Idea', color: 'bg-purple-500', lightBg: 'bg-purple-50', lightText: 'text-purple-600', ring: 'ring-purple-200' },
+  { id: 'todo', title: 'ToDo', color: 'bg-blue-500', lightBg: 'bg-blue-50', lightText: 'text-blue-600', ring: 'ring-blue-200' },
+  { id: 'doing', title: 'Doing', color: 'bg-amber-500', lightBg: 'bg-amber-50', lightText: 'text-amber-600', ring: 'ring-amber-200' },
+  { id: 'done', title: 'Done', color: 'bg-emerald-500', lightBg: 'bg-emerald-50', lightText: 'text-emerald-600', ring: 'ring-emerald-200' },
 ];
 
-export const PRIORITIES = [
-  { value: 'low', label: '低', color: 'bg-slate-400' },
-  { value: 'medium', label: '中', color: 'bg-blue-400' },
-  { value: 'high', label: '高', color: 'bg-orange-400' },
-  { value: 'urgent', label: '緊急', color: 'bg-red-500' },
+export const DEFAULT_TAGS = [
+  { id: 'project', label: 'Project', color: '#6366f1' },
+  { id: 'purchase', label: 'Purchase', color: '#f59e0b' },
+  { id: 'travel', label: 'Travel', color: '#06b6d4' },
+  { id: 'health', label: 'Health', color: '#10b981' },
+  { id: 'study', label: 'Study', color: '#8b5cf6' },
+  { id: 'work', label: 'Work', color: '#3b82f6' },
+  { id: 'personal', label: 'Personal', color: '#ec4899' },
+  { id: 'finance', label: 'Finance', color: '#14b8a6' },
 ];
-
-export const PRIORITY_COLORS = {
-  low: 'border-l-slate-400',
-  medium: 'border-l-blue-400',
-  high: 'border-l-orange-400',
-  urgent: 'border-l-red-500',
-};

@@ -9,15 +9,16 @@ import {
   DragOverlay,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { ChevronLeft, ChevronRight, Plus, LayoutGrid, List, Cloud, CloudOff, Kanban } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, LayoutGrid, List, Cloud, CloudOff, Kanban, Palette } from 'lucide-react';
 import Column from './components/Column';
 import TaskCard from './components/TaskCard';
 import TaskModal from './components/TaskModal';
 import ListView from './components/ListView';
 import SyncPanel from './components/SyncPanel';
+import TagManager from './components/TagManager';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useCloudSync } from './hooks/useCloudSync';
-import { COLUMNS } from './constants';
+import { COLUMNS, DEFAULT_TAGS } from './constants';
 
 function App() {
   const [tasks, setTasks] = useLocalStorage('kanban-tasks', []);
@@ -29,6 +30,8 @@ function App() {
   const [isMobile, setIsMobile] = useState(false);
   const [viewMode, setViewMode] = useState('board');
   const [syncPanelOpen, setSyncPanelOpen] = useState(false);
+  const [tagManagerOpen, setTagManagerOpen] = useState(false);
+  const [tags, setTags] = useLocalStorage('kanban-tags', DEFAULT_TAGS);
 
   const sync = useCloudSync(tasks, setTasks);
 
@@ -87,6 +90,10 @@ function App() {
     });
     setModalOpen(false);
     setEditingTask(null);
+  };
+
+  const handleUpdateTask = (updatedTask) => {
+    setTasks((prev) => prev.map((t) => (t.id === updatedTask.id ? updatedTask : t)));
   };
 
   const handleDragStart = (event) => {
@@ -263,6 +270,13 @@ function App() {
           <div className="flex items-center justify-between">
             <Logo size="sm" />
             <div className="flex items-center gap-1">
+              <button
+                onClick={() => setTagManagerOpen(true)}
+                className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="タグ管理"
+              >
+                <Palette size={18} />
+              </button>
               <SyncButton size={18} />
               <button
                 onClick={() => handleAddTask(viewMode === 'board' ? col.id : 'idea')}
@@ -285,6 +299,7 @@ function App() {
             onEditTask={handleEditTask}
             onDeleteTask={handleDeleteTask}
             onMoveTask={handleMoveTask}
+            tags={tags}
           />
         ) : (
           <div
@@ -333,11 +348,13 @@ function App() {
                     onEditTask={handleEditTask}
                     onDeleteTask={handleDeleteTask}
                     onMoveTask={handleMoveTask}
+                    onUpdateTask={handleUpdateTask}
+                    tags={tags}
                   />
                   <DragOverlay>
                     {activeTask ? (
                       <div className="opacity-80">
-                        <TaskCard task={activeTask} columnId={activeTask.column} onEdit={() => {}} onDelete={() => {}} />
+                        <TaskCard task={activeTask} columnId={activeTask.column} onEdit={() => {}} onDelete={() => {}} tags={tags} />
                       </div>
                     ) : null}
                   </DragOverlay>
@@ -359,11 +376,15 @@ function App() {
           isOpen={modalOpen}
           task={editingTask}
           defaultColumn={defaultColumn}
+          tags={tags}
           onSave={handleSaveTask}
           onClose={() => { setModalOpen(false); setEditingTask(null); }}
         />
         {syncPanelOpen && (
           <SyncPanel sync={sync} onClose={() => setSyncPanelOpen(false)} />
+        )}
+        {tagManagerOpen && (
+          <TagManager tags={tags} onUpdateTags={setTags} onClose={() => setTagManagerOpen(false)} />
         )}
       </div>
     );
@@ -379,6 +400,13 @@ function App() {
           <ViewTabs />
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setTagManagerOpen(true)}
+            className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="タグ管理"
+          >
+            <Palette size={20} />
+          </button>
           <SyncButton size={20} />
           <button
             onClick={() => handleAddTask('idea')}
@@ -397,6 +425,7 @@ function App() {
             onEditTask={handleEditTask}
             onDeleteTask={handleDeleteTask}
             onMoveTask={handleMoveTask}
+            tags={tags}
           />
         </div>
       ) : (
@@ -417,13 +446,15 @@ function App() {
                 onEditTask={handleEditTask}
                 onDeleteTask={handleDeleteTask}
                 onMoveTask={handleMoveTask}
+                onUpdateTask={handleUpdateTask}
+                tags={tags}
               />
             ))}
           </div>
           <DragOverlay>
             {activeTask ? (
               <div className="opacity-80">
-                <TaskCard task={activeTask} columnId={activeTask.column} onEdit={() => {}} onDelete={() => {}} />
+                <TaskCard task={activeTask} columnId={activeTask.column} onEdit={() => {}} onDelete={() => {}} tags={tags} />
               </div>
             ) : null}
           </DragOverlay>
@@ -434,11 +465,15 @@ function App() {
         isOpen={modalOpen}
         task={editingTask}
         defaultColumn={defaultColumn}
+        tags={tags}
         onSave={handleSaveTask}
         onClose={() => { setModalOpen(false); setEditingTask(null); }}
       />
       {syncPanelOpen && (
         <SyncPanel sync={sync} onClose={() => setSyncPanelOpen(false)} />
+      )}
+      {tagManagerOpen && (
+        <TagManager tags={tags} onUpdateTags={setTags} onClose={() => setTagManagerOpen(false)} />
       )}
     </div>
   );

@@ -75,8 +75,8 @@ function App() {
   const [selectedTags, setSelectedTags] = useState([]);
   const searchInputRef = useRef(null);
 
-  const sync = useCloudSync(tasks, setTasks, archivedTasks, setArchivedTasks, points, setPoints);
   const { points, setPoints, onTaskComplete, onSubtaskComplete, getLevel, getDailyData, getWeeklyData } = useKarma();
+  const sync = useCloudSync(tasks, setTasks, archivedTasks, setArchivedTasks, points, setPoints);
 
   // Track active column during drag for cross-column DnD fix
   const activeColumnRef = useRef(null);

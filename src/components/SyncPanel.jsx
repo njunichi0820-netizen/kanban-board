@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Cloud, CloudOff, RefreshCw, Copy, Check, Unlink, Download, Upload, Key } from 'lucide-react';
+import { Cloud, CloudOff, RefreshCw, Copy, Check, Unlink, Download, Upload, Key, Sparkles, Trash2 } from 'lucide-react';
 
 export default function SyncPanel({ sync, onClose }) {
   const {
@@ -14,6 +14,11 @@ export default function SyncPanel({ sync, onClose }) {
   const [importText, setImportText] = useState('');
   const [importMsg, setImportMsg] = useState('');
   const fileRef = useRef(null);
+
+  // Gemini API key state
+  const [geminiKey, setGeminiKey] = useState(() => localStorage.getItem('kanban-gemini-key') || '');
+  const [geminiInput, setGeminiInput] = useState('');
+  const [geminiSaved, setGeminiSaved] = useState(false);
 
   const handleCreate = async () => {
     if (!tokenInput.trim()) return;
@@ -62,6 +67,21 @@ export default function SyncPanel({ sync, onClose }) {
     reader.readAsText(file);
   };
 
+  const handleSaveGeminiKey = () => {
+    if (!geminiInput.trim()) return;
+    localStorage.setItem('kanban-gemini-key', geminiInput.trim());
+    setGeminiKey(geminiInput.trim());
+    setGeminiInput('');
+    setGeminiSaved(true);
+    setTimeout(() => setGeminiSaved(false), 2000);
+  };
+
+  const handleDeleteGeminiKey = () => {
+    localStorage.removeItem('kanban-gemini-key');
+    setGeminiKey('');
+    setGeminiInput('');
+  };
+
   const handleImportText = () => {
     if (!importText.trim()) return;
     const ok = importData(importText.trim());
@@ -81,7 +101,7 @@ export default function SyncPanel({ sync, onClose }) {
 
         {/* Tab switcher */}
         <div className="flex border-b">
-          {['setup', 'export'].map((t) => (
+          {['setup', 'export', 'gemini'].map((t) => (
             <button
               key={t}
               onClick={() => setTab(t === 'setup' && isConfigured ? 'sync' : t)}
@@ -91,7 +111,7 @@ export default function SyncPanel({ sync, onClose }) {
                   : 'text-gray-400 hover:text-gray-600'
               }`}
             >
-              {t === 'setup' ? (isConfigured ? 'GitHub同期' : 'セットアップ') : 'エクスポート'}
+              {t === 'setup' ? (isConfigured ? 'GitHub同期' : 'セットアップ') : t === 'gemini' ? 'Gemini AI' : 'エクスポート'}
             </button>
           ))}
         </div>
@@ -229,6 +249,63 @@ export default function SyncPanel({ sync, onClose }) {
                 <p className={`text-xs text-center font-bold ${importMsg.includes('成功') ? 'text-green-600' : 'text-red-500'}`}>
                   {importMsg}
                 </p>
+              )}
+            </>
+          )}
+
+          {/* === Gemini API === */}
+          {tab === 'gemini' && (
+            <>
+              <div className="bg-purple-50 rounded-xl p-3 text-xs text-purple-700 leading-relaxed">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Sparkles size={14} />
+                  <p className="font-bold">Gemini AI 音声タスク</p>
+                </div>
+                <p>音声入力したテキストをGemini AIが解析し、タスクを自動分割・カラム振り分けします。</p>
+                <p className="mt-1">Google AI Studio でAPIキーを取得してください。</p>
+              </div>
+
+              {geminiKey ? (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">APIキー</label>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 px-3 py-2 bg-gray-100 rounded-lg text-xs font-mono text-gray-600 truncate">
+                        {geminiKey.slice(0, 8)}{'•'.repeat(20)}
+                      </code>
+                      {geminiSaved && <Check size={16} className="text-green-500" />}
+                    </div>
+                    <p className="mt-1 text-[10px] text-green-600 font-semibold">設定済み — 音声入力が使えます</p>
+                  </div>
+                  <button
+                    onClick={handleDeleteGeminiKey}
+                    className="flex items-center justify-center gap-1 w-full px-3 py-2 text-sm text-red-500 bg-red-50 rounded-xl hover:bg-red-100 font-bold"
+                  >
+                    <Trash2 size={14} /> APIキーを削除
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">
+                      <Key size={12} className="inline mr-1" />Gemini APIキー
+                    </label>
+                    <input
+                      type="password"
+                      value={geminiInput}
+                      onChange={(e) => setGeminiInput(e.target.value)}
+                      placeholder="AIza..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-400"
+                    />
+                  </div>
+                  <button
+                    onClick={handleSaveGeminiKey}
+                    disabled={!geminiInput.trim()}
+                    className="w-full px-4 py-2.5 text-sm font-bold text-white bg-purple-600 rounded-xl hover:bg-purple-700 disabled:opacity-30"
+                  >
+                    保存
+                  </button>
+                </>
               )}
             </>
           )}

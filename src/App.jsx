@@ -9,7 +9,7 @@ import {
   DragOverlay,
 } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { ChevronLeft, ChevronRight, Plus, LayoutGrid, List, Cloud, CloudOff, Kanban, Palette, Archive, BarChart3, HelpCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, LayoutGrid, List, Cloud, CloudOff, Kanban, Palette, Archive, BarChart3, HelpCircle, Mic } from 'lucide-react';
 import Column from './components/Column';
 import TaskCard from './components/TaskCard';
 import TaskModal from './components/TaskModal';
@@ -19,9 +19,11 @@ import TagManager from './components/TagManager';
 import BoardFilter from './components/BoardFilter';
 import ArchivePanel from './components/ArchivePanel';
 import StatsView from './components/StatsView';
+import VoiceInput from './components/VoiceInput';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useCloudSync } from './hooks/useCloudSync';
 import { useKarma } from './hooks/useKarma';
+import { useVoiceTask } from './hooks/useVoiceTask';
 import { COLUMNS, DEFAULT_TAGS } from './constants';
 
 class ErrorBoundary extends Component {
@@ -78,6 +80,23 @@ function App() {
 
   const { points, setPoints, onTaskCreate, onTaskComplete, onSubtaskComplete, getLevel, getDailyData, getWeeklyData } = useKarma();
   const sync = useCloudSync(tasks, setTasks, archivedTasks, setArchivedTasks, points, setPoints);
+  const voice = useVoiceTask();
+
+  const handleVoiceTasks = useCallback((voiceTasks) => {
+    const newTasks = voiceTasks.map((t) => ({
+      id: crypto.randomUUID(),
+      title: t.title,
+      description: '',
+      column: t.column,
+      priority: t.priority,
+      tags: [],
+      subtasks: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }));
+    setTasks((prev) => [...prev, ...newTasks]);
+    newTasks.forEach(() => onTaskCreate());
+  }, [setTasks, onTaskCreate]);
 
   // Track active column during drag for cross-column DnD fix
   const activeColumnRef = useRef(null);
@@ -606,6 +625,7 @@ function App() {
                 <Palette size={18} />
               </button>
               <SyncButton size={18} />
+              <VoiceInput voice={voice} onAddTasks={handleVoiceTasks} size={18} />
               <button
                 onClick={() => handleAddTask(viewMode === 'board' ? col.id : 'idea')}
                 className="p-2 text-white bg-indigo-600 rounded-xl hover:bg-indigo-700"
@@ -802,6 +822,7 @@ function App() {
             <HelpCircle size={20} />
           </button>
           <SyncButton size={20} />
+          <VoiceInput voice={voice} onAddTasks={handleVoiceTasks} size={20} />
           <button
             onClick={() => handleAddTask('idea')}
             className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors"
